@@ -1,112 +1,186 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import moment from 'moment';
-import styled from 'styled-components';
+import { Button, Typography, Box, ButtonGroup, IconButton } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
+import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  background-color: #f0f0f0;
-  text-align: center;
-  font-weight: bold;
-  border-bottom: 1px solid #ccc;
-`;
-
-const CalendarContainer = styled.div`
-  display: flex;
-  height: 600px;
-  overflow-y: scroll;
-`;
-
-const DayColumn = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #ccc;
-`;
-
-const DayHeader = styled.div`
-  padding: 5px;
-  flex: 1;
-  border-left: 1px solid #ccc;
-`;
-
-const TimeHeader = styled(DayHeader)`
-  flex: 0 0 41px;
-`;
-
-const TimeSlot = styled.div`
-  flex: 1;
-  min-height: 100px;
-  border-top: 1px solid #ccc;
-  border-left: 1px solid #ccc;
-  padding: 5px;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 2px solid transparent;
-    top: ${props => props.isCurrentHour ? `${props.minutePercent}%` : 'unset'};
-    border-color: ${props => props.isCurrentHour ? 'red' : 'transparent'};
-  }
-`;
-
-const TimeColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 50px;
-  border-right: 1px solid #ccc;
-`;
+const useStyles = makeStyles((theme) => ({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxWidth: 800,
+    margin: '0 auto',
+    marginTop: theme.spacing(2),
+  },
+  top: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.palette.grey[200],
+    textAlign: 'center',
+    fontWeight: 'bold',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1),
+  },
+  header: {
+    display: 'flex',
+    backgroundColor: theme.palette.grey[200],
+    textAlign: 'center',
+    fontWeight: 'bold',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1),
+  },
+  dayHeader: {
+    flex: 1,
+    width: 50,
+    padding: theme.spacing(1),
+  },
+  timeHeader: {
+    borderRight: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1),
+  },
+  timeColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: 50,
+  },
+  dayColumn: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  timeSlot: {
+    flex: 1,
+    minHeight: 50,
+    borderTop: `1px solid ${theme.palette.divider}`,
+    borderLeft: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1),
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  redLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderTop: `2px solid ${theme.palette.error.main}`,
+  },
+  weekSelector: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: theme.spacing(2),
+    backgroundColor: theme.palette.grey[200],
+    alignItems: 'center',
+    '& > *': {
+      margin: theme.spacing(0, 1),
+    },
+  },
+  calendarContainer: {
+    display: 'flex',
+    height: 600,
+    overflowY: 'scroll',
+  },
+}));
 
 function Calendar() {
-  const startOfWeek = moment().startOf('week');
-  const days = Array.from({ length: 7 }, (_, i) => startOfWeek.clone().add(i, 'day'));
+  const classes = useStyles();
+  const [now, setNow] = useState(moment());
+  const [startOfWeek, setStartOfWeek] = useState(moment().startOf('week'));
   const currentTimeSlotRef = useRef(null);
+  const days = Array.from({ length: 7 }, (_, i) => startOfWeek.clone().add(i, 'day'));
 
-  useEffect(() => {
-    setTimeout(() => currentTimeSlotRef.current.scrollIntoView({ behavior: 'smooth' }), 500);
-  }, []);
-
-  const now = moment();
   const minutePercent = (now.minutes() / 60) * 100;
 
+  const goNextWeek = () => {
+    setStartOfWeek(startOfWeek.clone().add(1, 'week'));
+  };
+
+  const goPrevWeek = () => {
+    setStartOfWeek(startOfWeek.clone().subtract(1, 'week'));
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(moment());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (currentTimeSlotRef.current && now.isSame(startOfWeek, 'week')) {
+      currentTimeSlotRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [now, startOfWeek]);
+
   return (
-    <Container>
-      <HeaderRow>
-        <TimeHeader style={{borderLeft: 'none'}}>Time</TimeHeader>
-        {days.map((date, i) => (
-          <DayHeader key={i}>{date.format('dddd, MMMM Do')}</DayHeader>
+    <Box className={classes.container}>
+    <Box className={classes.top}>
+        <Box className={classes.weekSelector}>
+            <IconButton color="primary" onClick={goPrevWeek}>
+            <ArrowBackIosIcon />
+            </IconButton>
+            <Typography variant="h6">
+            {`${startOfWeek.format('MMMM D')} - ${startOfWeek.clone().add(6, 'days').format('MMMM D')}`}
+            </Typography>
+            <IconButton color="primary" onClick={goNextWeek}>
+            <ArrowForwardIosIcon/>
+            </IconButton>
+        </Box>
+
+        <ButtonGroup variant="outlined" aria-label="outlined button group">
+            <Button>Day</Button>
+            <Button>Week</Button>
+            <Button>Month</Button>
+        </ButtonGroup>
+    </Box>
+
+
+      <Box className={classes.header}>
+        <Typography className={classes.timeHeader}>
+            <AccessTimeIcon/>
+        </Typography>
+        {days.map((date) => (
+          <Typography className={classes.dayHeader} key={date.format()}>
+            {date.format('ddd D')}
+          </Typography>
         ))}
-      </HeaderRow>
-      <CalendarContainer>
-        <TimeColumn>
-          {Array.from({ length: 24 }, (_, j) => (
-            <TimeSlot key={j} style={{borderLeft: 'none'}}>
-              {j}:00
-            </TimeSlot>
+      </Box>
+
+      <Box className={classes.calendarContainer}>
+        <Box className={classes.timeColumn}>
+          {Array.from({ length: 24 }, (_, i) => (
+            <Typography className={classes.timeSlot} key={i}>
+              {`${i}:00`}
+            </Typography>
           ))}
-        </TimeColumn>
-        {days.map((date, i) => (
-          <DayColumn key={i}>
+        </Box>
+
+        {days.map((date) => (
+          <Box className={classes.dayColumn} key={date.format()}>
             {Array.from({ length: 24 }, (_, j) => (
-              <TimeSlot 
-                key={j} 
-                isCurrentHour={now.hour() === j}
-                minutePercent={now.hour() === j ? minutePercent : 0}
+              <Box
+                className={classes.timeSlot}
+                key={j}
                 ref={now.isSame(date, 'day') && now.hour() === j ? currentTimeSlotRef : null}
-              />
+              >
+                {now.isSame(date, 'day') && now.hour() === j && (
+                  <Box
+                    className={classes.redLine}
+                    style={{
+                      top: `${minutePercent}%`,
+                    }}
+                  />
+                )}
+              </Box>
             ))}
-          </DayColumn>
+          </Box>
         ))}
-      </CalendarContainer>
-    </Container>
+      </Box>
+    </Box>
   );
 }
 
-export default Calendar
+export default Calendar;
